@@ -6,11 +6,12 @@ AWSNetworkTopology:
     Components:
       InternetGateway:
         ID: "igw-0a1b2c3d4e"
-        AssociatedWith: "Public Subnets"
+        AssociatedRouteTable: "PublicRouteTable"
       NATGateway:
         ID: "nat-0f1e2d3c4b5a"
         Subnet: "Public-Subnet-A"
-        UsedBy: "Private Subnets"
+        AssociatedRouteTable: "PrivateRouteTable"
+
     RouteTables:
       PublicRouteTable:
         Routes:
@@ -46,6 +47,7 @@ AWSNetworkTopology:
   SecurityGroups:
     WebServerSG:
       ID: "sg-07a6e97d82929c894"
+      AppliedTo: ["ALB", "Public EC2 Instances"]
       Rules:
         Inbound:
           - Protocol: "TCP"
@@ -56,6 +58,7 @@ AWSNetworkTopology:
             Destination: "0.0.0.0/0"
     RDSSG:
       ID: "sg-053a8faddc49659ae"
+      AppliedTo: ["RDS Instances"]
       Rules:
         Inbound:
           - Protocol: "TCP"
@@ -85,9 +88,9 @@ AWSNetworkTopology:
           Path: "/"
           IntervalSeconds: 30
         Instances:
-          - ID: "i-027e0a17395e28694"  # Prometheus Server
-          - ID: "i-0654e49f2e85638a7"  # Grafana Server
-          - ID: "i-0fc94f171b5cb556e"  # API Server
+          - "Prometheus Server"
+          - "Grafana Server"
+          - "API Server"
 
   ComputeInstances:
     Public:
@@ -97,34 +100,26 @@ AWSNetworkTopology:
         PublicIP: "54.252.88.122"
         SecurityGroup: "WebServerSG"
         Port: 9090
-        Subnet: "Public-Subnet-A"
       - Name: "Grafana Server"
         ID: "i-0654e49f2e85638a7"
         Role: "Visualization"
         PublicIP: "13.54.185.73"
         SecurityGroup: "WebServerSG"
         Port: 3000
-        Subnet: "Public-Subnet-B"
       - Name: "API Server"
         ID: "i-0fc94f171b5cb556e"
         Role: "Backend API"
         PublicIP: "3.25.203.108"
         SecurityGroup: "WebServerSG"
         Ports: [3001, 80]
-        Subnet: "Public-Subnet-A"
-
-  Database:
-    RDS:
-      Primary:
-        Name: "Primary-RDS"
-        Endpoint: "mysql-sydney-primary.cn0gigquicc1.ap-southeast-2.rds.amazonaws.com"
+    Private:
+      - Name: "Primary RDS"
+        ID: "mysql-sydney-primary.cn0gigquicc1.ap-southeast-2.rds.amazonaws.com"
         Port: 3306
         SecurityGroup: "RDSSG"
         Subnet: "Private-Subnet-A"
-      Replica:
-        Name: "Replica-RDS"
-        Endpoint: "mysql-oregon-replica.cvmmme46qtv1.us-west-2.rds.amazonaws.com"
+      - Name: "Replica RDS"
+        ID: "mysql-oregon-replica.cvmmme46qtv1.us-west-2.rds.amazonaws.com"
         Port: 3306
         SecurityGroup: "RDSSG"
         Subnet: "Private-Subnet-B"
-        Connection: "VPC Peering (pcx-02b91c2606f3c01cb)"

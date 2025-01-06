@@ -3,46 +3,76 @@ AWSNetworkTopology:
     Name: "Primary-VPC"
     ID: "vpc-04bdc6eb62c401af2"
     CIDR: "10.0.0.0/16"
+    Components:
+      InternetGateway:
+        ID: "igw-0a1b2c3d4e"
+        AssociatedWith: "Public Subnets"
+      NATGateway:
+        ID: "nat-0f1e2d3c4b5a"
+        Subnet: "Public-Subnet-A"
+        UsedBy: "Private Subnets"
+    RouteTables:
+      PublicRouteTable:
+        Routes:
+          - Destination: "0.0.0.0/0"
+            Target: "igw-0a1b2c3d4e"
+        AssociatedSubnets:
+          - "Public-Subnet-A"
+          - "Public-Subnet-B"
+      PrivateRouteTable:
+        Routes:
+          - Destination: "0.0.0.0/0"
+            Target: "nat-0f1e2d3c4b5a"
+        AssociatedSubnets:
+          - "Private-Subnet-A"
+          - "Private-Subnet-B"
+
     Subnets:
       PublicSubnets:
-        - Name: "Subnet-A"
+        - Name: "Public-Subnet-A"
           ID: "subnet-0c05b62a5a8a544d4"
           AZ: "ap-southeast-2a"
-        - Name: "Subnet-B"
+        - Name: "Public-Subnet-B"
           ID: "subnet-083d69f85b6079dc8"
           AZ: "ap-southeast-2b"
       PrivateSubnets:
         - Name: "Private-Subnet-A"
-          ID: "subnet-0x_private_a"
+          ID: "subnet-private-a"
           AZ: "ap-southeast-2a"
         - Name: "Private-Subnet-B"
-          ID: "subnet-0x_private_b"
+          ID: "subnet-private-b"
           AZ: "ap-southeast-2b"
-    SecurityGroups:
-      WebServerSG:
-        ID: "sg-07a6e97d82929c894"
-        Rules:
+
+  SecurityGroups:
+    WebServerSG:
+      ID: "sg-07a6e97d82929c894"
+      Rules:
+        Inbound:
           - Protocol: "TCP"
             Ports: [22, 80, 3000, 9090]
-            CIDR: "0.0.0.0/0"
-      RDSSG:
-        ID: "sg-053a8faddc49659ae"
-        Rules:
+            Source: "0.0.0.0/0"
+        Outbound:
+          - Protocol: "TCP"
+            Destination: "0.0.0.0/0"
+    RDSSG:
+      ID: "sg-053a8faddc49659ae"
+      Rules:
+        Inbound:
           - Protocol: "TCP"
             Port: 3306
-            CIDR: "10.0.0.0/16"
-    InternetGateway: "igw-0a1b2c3d4e"
-    NATGateway: "nat-0f1e2d3c4b5a"
+            Source: "10.0.0.0/16"
+        Outbound:
+          - Protocol: "TCP"
+            Destination: "0.0.0.0/0"
 
   LoadBalancer:
     Name: "MyLoadBalancer"
     Type: "Application"
-    ARN: "arn:aws:elasticloadbalancing:..."
     DNS: "MyLoadBalancer-35602458.ap-southeast-2.elb.amazonaws.com"
     SecurityGroup: "WebServerSG"
     Subnets:
-      - "Subnet-A"
-      - "Subnet-B"
+      - "Public-Subnet-A"
+      - "Public-Subnet-B"
     Listener:
       Protocol: "HTTP"
       Port: 80
@@ -50,34 +80,38 @@ AWSNetworkTopology:
         Name: "MyTargetGroup"
         Protocol: "HTTP"
         Port: 80
-        TargetType: "instance"
+        HealthCheck:
+          Protocol: "HTTP"
+          Path: "/"
+          IntervalSeconds: 30
         Instances:
           - ID: "i-027e0a17395e28694"  # Prometheus Server
           - ID: "i-0654e49f2e85638a7"  # Grafana Server
           - ID: "i-0fc94f171b5cb556e"  # API Server
 
   ComputeInstances:
-    - Name: "Prometheus Server"
-      ID: "i-027e0a17395e28694"
-      Role: "Metrics Collection"
-      PublicIP: "54.252.88.122"
-      SecurityGroup: "WebServerSG"
-      Port: 9090
-      Subnet: "Subnet-A"
-    - Name: "Grafana Server"
-      ID: "i-0654e49f2e85638a7"
-      Role: "Visualization"
-      PublicIP: "13.54.185.73"
-      SecurityGroup: "WebServerSG"
-      Port: 3000
-      Subnet: "Subnet-B"
-    - Name: "API Server"
-      ID: "i-0fc94f171b5cb556e"
-      Role: "Backend API"
-      PublicIP: "3.25.203.108"
-      SecurityGroup: "WebServerSG"
-      Ports: [3001, 80]
-      Subnet: "Subnet-A"
+    Public:
+      - Name: "Prometheus Server"
+        ID: "i-027e0a17395e28694"
+        Role: "Metrics Collection"
+        PublicIP: "54.252.88.122"
+        SecurityGroup: "WebServerSG"
+        Port: 9090
+        Subnet: "Public-Subnet-A"
+      - Name: "Grafana Server"
+        ID: "i-0654e49f2e85638a7"
+        Role: "Visualization"
+        PublicIP: "13.54.185.73"
+        SecurityGroup: "WebServerSG"
+        Port: 3000
+        Subnet: "Public-Subnet-B"
+      - Name: "API Server"
+        ID: "i-0fc94f171b5cb556e"
+        Role: "Backend API"
+        PublicIP: "3.25.203.108"
+        SecurityGroup: "WebServerSG"
+        Ports: [3001, 80]
+        Subnet: "Public-Subnet-A"
 
   Database:
     RDS:

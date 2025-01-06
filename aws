@@ -1,97 +1,96 @@
-AWS_Network_Topology:
+AWSNetworkTopology:
   VPC:
-    Name: Primary-VPC
-    ID: vpc-04bdc6eb62c401af2
-    Region: ap-southeast-2
-    CIDR: 10.0.0.0/16
-    Components:
-      - InternetGateway:
-          ID: igw-0b40954be2869c5e5
-          Purpose: Public internet access for public subnets
-      - NATGateway:
-          ID: nat-0a123b456cdef7890
-          Purpose: Internet access for private subnets
-          Subnet: Public_Subnet_A (subnet-0c05b62a5a8a544d4)
-      - Subnets:
-          Public_Subnet_A:
-            ID: subnet-0c05b62a5a8a544d4
-            AvailabilityZone: ap-southeast-2a
-            CIDR: 10.0.1.0/24
-            Resources:
-              - LoadBalancer:
-                  Name: MyLoadBalancer
-                  Type: Application
-                  DNS: MyLoadBalancer-35602458.ap-southeast-2.elb.amazonaws.com
-                  SecurityGroup: sg-07a6e97d82929c894
-                  Listener:
-                    Protocol: HTTP
-                    Port: 80
-                  TargetGroup:
-                    Name: MyTargetGroup
-                    Type: Instance
-                    HealthCheck:
-                      Protocol: HTTP
-                      Path: /
-              - ComputeInstances:
-                  - Name: API_Server
-                    ID: i-0fc94f171b5cb556e
-                    Role: Backend_API
-                    Public_IP: 3.25.203.108
-                    Ports: 
-                      - 80 (HTTP)
-                      - 3001 (API)
-                  - Name: Grafana_Server
-                    ID: i-0654e49f2e85638a7
-                    Role: Visualization
-                    Public_IP: 13.54.185.73
-                    Ports: 3000
-          Public_Subnet_B:
-            ID: subnet-083d69f85b6079dc8
-            AvailabilityZone: ap-southeast-2b
-            CIDR: 10.0.2.0/24
-            Resources:
-              - ComputeInstances:
-                  - Name: Prometheus_Server
-                    ID: i-027e0a17395e28694
-                    Role: Metrics_Collection
-                    Public_IP: 54.252.88.122
-                    Ports: 9090
-          Private_Subnet_A:
-            ID: subnet-12345-private
-            AvailabilityZone: ap-southeast-2a
-            CIDR: 10.0.3.0/24
-            Resources:
-              - RDS_Instance:
-                  Name: Primary_RDS
-                  Engine: MySQL
-                  Endpoint: mysql-sydney-primary.cn0gigquicc1.ap-southeast-2.rds.amazonaws.com
-                  Port: 3306
-                  SecurityGroup: sg-rds-private
-                  Accessibility: Private
-      - SecurityGroups:
-          - Name: Lab-SG
-            ID: sg-07a6e97d82929c894
-            OpenPorts:
-              - 22 (SSH)
-              - 80 (HTTP)
-              - 3000 (App)
-              - 9090 (Metrics)
-          - Name: RDS-Private-SG
-            ID: sg-rds-private
-            OpenPorts:
-              - 3306 (MySQL)
-              CIDR: 10.0.0.0/16
-  DNS:
-    Zones:
-      - internal.lab
-      - sydney-db.internal.lab
-      - oregon-db.internal.lab
-  Applications:
-    - Name: Node.js_WebApp
-      DirectoryStructure:
-        public:
-          - index.html
-          - thank-you.html
-        backend:
-          - server.js
-          - package.json
+    Name: "Primary-VPC"
+    ID: "vpc-04bdc6eb62c401af2"
+    CIDR: "10.0.0.0/16"
+    Subnets:
+      PublicSubnets:
+        - Name: "Subnet-A"
+          ID: "subnet-0c05b62a5a8a544d4"
+          AZ: "ap-southeast-2a"
+        - Name: "Subnet-B"
+          ID: "subnet-083d69f85b6079dc8"
+          AZ: "ap-southeast-2b"
+      PrivateSubnets:
+        - Name: "Private-Subnet-A"
+          ID: "subnet-0x_private_a"
+          AZ: "ap-southeast-2a"
+        - Name: "Private-Subnet-B"
+          ID: "subnet-0x_private_b"
+          AZ: "ap-southeast-2b"
+    SecurityGroups:
+      WebServerSG:
+        ID: "sg-07a6e97d82929c894"
+        Rules:
+          - Protocol: "TCP"
+            Ports: [22, 80, 3000, 9090]
+            CIDR: "0.0.0.0/0"
+      RDSSG:
+        ID: "sg-053a8faddc49659ae"
+        Rules:
+          - Protocol: "TCP"
+            Port: 3306
+            CIDR: "10.0.0.0/16"
+    InternetGateway: "igw-0a1b2c3d4e"
+    NATGateway: "nat-0f1e2d3c4b5a"
+
+  LoadBalancer:
+    Name: "MyLoadBalancer"
+    Type: "Application"
+    ARN: "arn:aws:elasticloadbalancing:..."
+    DNS: "MyLoadBalancer-35602458.ap-southeast-2.elb.amazonaws.com"
+    SecurityGroup: "WebServerSG"
+    Subnets:
+      - "Subnet-A"
+      - "Subnet-B"
+    Listener:
+      Protocol: "HTTP"
+      Port: 80
+      TargetGroup:
+        Name: "MyTargetGroup"
+        Protocol: "HTTP"
+        Port: 80
+        TargetType: "instance"
+        Instances:
+          - ID: "i-027e0a17395e28694"  # Prometheus Server
+          - ID: "i-0654e49f2e85638a7"  # Grafana Server
+          - ID: "i-0fc94f171b5cb556e"  # API Server
+
+  ComputeInstances:
+    - Name: "Prometheus Server"
+      ID: "i-027e0a17395e28694"
+      Role: "Metrics Collection"
+      PublicIP: "54.252.88.122"
+      SecurityGroup: "WebServerSG"
+      Port: 9090
+      Subnet: "Subnet-A"
+    - Name: "Grafana Server"
+      ID: "i-0654e49f2e85638a7"
+      Role: "Visualization"
+      PublicIP: "13.54.185.73"
+      SecurityGroup: "WebServerSG"
+      Port: 3000
+      Subnet: "Subnet-B"
+    - Name: "API Server"
+      ID: "i-0fc94f171b5cb556e"
+      Role: "Backend API"
+      PublicIP: "3.25.203.108"
+      SecurityGroup: "WebServerSG"
+      Ports: [3001, 80]
+      Subnet: "Subnet-A"
+
+  Database:
+    RDS:
+      Primary:
+        Name: "Primary-RDS"
+        Endpoint: "mysql-sydney-primary.cn0gigquicc1.ap-southeast-2.rds.amazonaws.com"
+        Port: 3306
+        SecurityGroup: "RDSSG"
+        Subnet: "Private-Subnet-A"
+      Replica:
+        Name: "Replica-RDS"
+        Endpoint: "mysql-oregon-replica.cvmmme46qtv1.us-west-2.rds.amazonaws.com"
+        Port: 3306
+        SecurityGroup: "RDSSG"
+        Subnet: "Private-Subnet-B"
+        Connection: "VPC Peering (pcx-02b91c2606f3c01cb)"
